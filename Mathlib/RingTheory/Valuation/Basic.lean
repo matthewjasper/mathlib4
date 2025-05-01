@@ -519,6 +519,16 @@ theorem isEquiv_iff_val_eq_one [LinearOrderedCommGroupWithZero Γ₀]
 
 alias ⟨IsEquiv.eq_one_iff_eq_one, _⟩ := isEquiv_iff_val_eq_one
 
+theorem isEquiv_iff_val_eq_val [LinearOrderedCommGroupWithZero Γ₀]
+    [LinearOrderedCommGroupWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀} :
+    v.IsEquiv v' ↔ ∀ {x y : K}, v x = v y ↔ v' x = v' y := by
+  constructor
+  · exact IsEquiv.val_eq
+  · intro h
+    rw [isEquiv_iff_val_eq_one]
+    intro x
+    simpa using @h x 1
+
 theorem isEquiv_iff_val_lt_one [LinearOrderedCommGroupWithZero Γ₀]
     [LinearOrderedCommGroupWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀} :
     v.IsEquiv v' ↔ ∀ {x : K}, v x < 1 ↔ v' x < 1 := by
@@ -563,13 +573,106 @@ theorem isEquiv_tfae [LinearOrderedCommGroupWithZero Γ₀] [LinearOrderedCommGr
       ∀ {x}, v x ≤ 1 ↔ v' x ≤ 1,
       ∀ {x}, v x = 1 ↔ v' x = 1,
       ∀ {x}, v x < 1 ↔ v' x < 1,
-      ∀ {x}, v (x - 1) < 1 ↔ v' (x - 1) < 1 ].TFAE := by
+      ∀ {x}, v (x - 1) < 1 ↔ v' (x - 1) < 1,
+      ∀ {x y}, v x = v y ↔ v' x = v' y ].TFAE := by
   tfae_have 1 ↔ 2 := isEquiv_iff_val_lt_val
   tfae_have 1 ↔ 3 := isEquiv_iff_val_le_one
   tfae_have 1 ↔ 4 := isEquiv_iff_val_eq_one
   tfae_have 1 ↔ 5 := isEquiv_iff_val_lt_one
   tfae_have 1 ↔ 6 := isEquiv_iff_val_sub_one_lt_one
+  tfae_have 1 ↔ 7 := isEquiv_iff_val_eq_val
   tfae_finish
+
+def orderEquiv_of_isEquiv.toFun [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] (v : Valuation K Γ₀) (v' : Valuation K Γ'₀)
+    : (MonoidHom.mrange v) → (MonoidHom.mrange v') :=
+  fun ⟨_, hx⟩ =>
+    let y := hx.choose
+    ⟨v' y, y, rfl⟩
+
+theorem orderEquiv_of_isEquiv_toFun_apply [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀}
+    (h : v.IsEquiv v') {r : MonoidHom.mrange v} {x : K} (h' : r = v x) :
+    orderEquiv_of_isEquiv.toFun v v' r = v' x := by
+  have hspec := r.prop.choose_spec
+  simp only [orderEquiv_of_isEquiv.toFun]
+  rwa [← h.val_eq, hspec]
+
+def orderEquiv_of_isEquiv [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] (v : Valuation K Γ₀) (v' : Valuation K Γ'₀)
+    (h : v.IsEquiv v') : (MonoidHom.mrange v) ≃*o (MonoidHom.mrange v') := {
+  toFun := orderEquiv_of_isEquiv.toFun v v'
+  invFun := orderEquiv_of_isEquiv.toFun v' v
+  left_inv := by
+    rintro ⟨_, x, rfl⟩
+    ext
+    apply orderEquiv_of_isEquiv_toFun_apply h.symm <| orderEquiv_of_isEquiv_toFun_apply h rfl
+  right_inv := by
+    rintro ⟨_, x, rfl⟩
+    ext
+    apply orderEquiv_of_isEquiv_toFun_apply h <| orderEquiv_of_isEquiv_toFun_apply h.symm rfl
+  map_mul' := by
+    rintro ⟨_, x, rfl⟩ ⟨_, y, rfl⟩
+    ext
+    rw [Submonoid.coe_mul, orderEquiv_of_isEquiv_toFun_apply (r:=⟨v x, x, rfl⟩) h rfl,
+      orderEquiv_of_isEquiv_toFun_apply (r:=⟨v y, y, rfl⟩) h rfl, ← map_mul]
+    apply orderEquiv_of_isEquiv_toFun_apply h
+    simp
+  map_le_map_iff' := by
+    rintro ⟨_, x, rfl⟩ ⟨_, y, rfl⟩
+    simpa [← Subtype.coe_le_coe,
+      orderEquiv_of_isEquiv_toFun_apply (r:=⟨v x, x, rfl⟩) h rfl,
+      orderEquiv_of_isEquiv_toFun_apply (r:=⟨v y, y, rfl⟩) h rfl,
+      Subtype.mk_le_mk] using h.symm x y
+}
+
+theorem orderEquiv_of_isEquiv_apply [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀}
+    (h : v.IsEquiv v') {r : MonoidHom.mrange v} {x : K} (h' : r = v x) :
+    orderEquiv_of_isEquiv v v' h r = v' x :=
+  orderEquiv_of_isEquiv_toFun_apply h h'
+
+theorem orderEquiv_of_isEquiv_symm_apply [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀}
+    (h : v.IsEquiv v') {r : MonoidHom.mrange v'} {x : K} (h' : r = v' x) :
+    (orderEquiv_of_isEquiv v v' h).symm r = v x :=
+  orderEquiv_of_isEquiv_toFun_apply h.symm h'
+
+def orderEquiv_of_isEquiv_surjective [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] (v : Valuation K Γ₀) (v' : Valuation K Γ'₀)
+    (h : v.IsEquiv v') (hsurj : Function.Surjective v) (hsurj' : Function.Surjective v') :
+    Γ₀ ≃*o Γ'₀ :=
+  let sub : (⊤ : Submonoid Γ₀) ≃*o Γ₀ := {
+    __ := Submonoid.topEquiv
+    map_le_map_iff' {x y} := Iff.rfl
+  }
+  let sub' : (⊤ : Submonoid Γ'₀) ≃*o Γ'₀ := {
+    __ := Submonoid.topEquiv
+    map_le_map_iff' {x y} := Iff.rfl
+  }
+  let eq : (MonoidHom.mrange v) ≃*o (⊤ : Submonoid Γ₀) := {
+    __ := MulEquiv.submonoidCongr (by rw [MonoidHom.mrange_eq_top_of_surjective v hsurj])
+    map_le_map_iff' {x y} := Iff.rfl
+  }
+  let eq' : (MonoidHom.mrange v') ≃*o (⊤ : Submonoid Γ'₀) := {
+    __ := MulEquiv.submonoidCongr (by rw [MonoidHom.mrange_eq_top_of_surjective v' hsurj'])
+    map_le_map_iff' {x y} := Iff.rfl
+  }
+  sub.symm.trans <| eq.symm.trans <| (orderEquiv_of_isEquiv v v' h).trans <| eq'.trans <| sub'
+
+theorem orderEquiv_of_isEquiv_surjective_apply [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀}
+    (h : v.IsEquiv v') {r : MonoidHom.mrange v} {x : K} (h' : r = v x)
+    (hsurj : Function.Surjective v) (hsurj' : Function.Surjective v') :
+    (orderEquiv_of_isEquiv_surjective v v' h hsurj hsurj') r = v' x :=
+  orderEquiv_of_isEquiv_apply h h'
+
+theorem orderEquiv_of_isEquiv_surjective_symm_apply [LinearOrderedCommMonoidWithZero Γ₀]
+    [LinearOrderedCommMonoidWithZero Γ'₀] {v : Valuation K Γ₀} {v' : Valuation K Γ'₀}
+    (h : v.IsEquiv v') {r : MonoidHom.mrange v'} {x : K} (h' : r = v' x)
+    (hsurj : Function.Surjective v) (hsurj' : Function.Surjective v') :
+    (orderEquiv_of_isEquiv_surjective v v' h hsurj hsurj').symm r = v x :=
+  orderEquiv_of_isEquiv_symm_apply h h'
 
 end
 

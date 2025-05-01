@@ -130,6 +130,11 @@ theorem le_iff_dvd (hv : Integers v O) {x y : O} :
     v (algebraMap O F x) ≤ v (algebraMap O F y) ↔ y ∣ x :=
   ⟨hv.dvd_of_le, hv.le_of_dvd⟩
 
+theorem associated_iff_eq (hv : Integers v O) {x y : O} :
+    Associated x y ↔ v (algebraMap O F y) = v (algebraMap O F x) := by
+  have := Function.Injective.isDomain _ hv.hom_inj
+  rw [← dvd_dvd_iff_associated, dvd_iff_le hv, dvd_iff_le hv, le_antisymm_iff]
+
 /--
 This is the special case of `Valuation.Integers.isUnit_of_one` when the valuation is defined
 over a field. Let `v` be a valuation on some field `F` and `O` be its integers. For every element
