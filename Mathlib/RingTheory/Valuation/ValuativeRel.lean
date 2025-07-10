@@ -271,6 +271,7 @@ theorem ValueGroupWithZero.mk_eq_one (x : R) (y : posSubmonoid R) :
     ValueGroupWithZero.mk x y = 1 ↔ x ≤ᵥ y ∧ y ≤ᵥ x := by
   simp [← mk_one_one, mk_eq_mk]
 
+@[simp]
 theorem ValueGroupWithZero.lift_zero {α : Sort*} (f : R → posSubmonoid R → α)
     (hf : ∀ (x y : R) (t s : posSubmonoid R), x * t ≤ᵥ y * s → y * s ≤ᵥ x * t → f x s = f y t) :
     ValueGroupWithZero.lift f hf 0 = f 0 1 :=
